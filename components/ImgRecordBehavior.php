@@ -9,30 +9,37 @@
 class ImgRecordBehavior extends CBehavior
 {
 	/**
+	 * @property string the image id attribute. Defaults to "imageId".
+	 * @since 1.2.0
+	 */
+	public $attribute='imageId';
+
+	/**
 	 * Saves the image for the owner of this behavior.
+	 * @param string $name the image name.
 	 * @param CUploadedFile $file the uploaded file.
 	 */
-	public function saveImage($file)
+	public function saveImage($name,$file)
 	{
-		$image = Yii::app()->image->save($file);
+		$image=Yii::app()->image->save($name,$file);
 
-		if ($image !== null && $this->owner->hasAttribute('imageId'))
-			$this->owner->imageId = $image->id;
+		if($image!==null && $this->owner->hasAttribute($this->attribute))
+			$this->owner->{$this->attribute}=$image->id;
 	}
 
 	/**
 	 * Renders the image for the owner of this behavior.
 	 * @param string $version the name of the image version.
-	 * @param string $alt the image alternative text
-	 * @param array $htmlOptions the additional HTML options
+	 * @param string $alt the image alternative text.
+	 * @param array $htmlOptions the additional HTML options.
 	 */
 	public function renderImage($version,$alt='',$htmlOptions=array())
 	{
-		if ($this->owner->hasAttribute('imageId'))
+		if($this->owner->hasAttribute($this->attribute))
 		{
-			$image = Yii::app()->image->loadModel($this->owner->imageId);
+			$image=Yii::app()->image->loadModel($this->owner->{$this->attribute});
 
-			if ($image !== null)
+			if ($image!==null)
 				$image->render($version,$alt,$htmlOptions);
 		}
 	}

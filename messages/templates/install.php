@@ -21,7 +21,7 @@
 return array (
   'An error occurred while installing the Image module.' => '',
   'Congratulations!' => '',
-  'Continue &raquo;' => '',
+  'Continue' => '',
   'Do you wish to continue?' => '',
   'Error' => '',
   'Install' => '',

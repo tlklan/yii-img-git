@@ -4,7 +4,7 @@
  * @author Christoffer Niska <ChristofferNiska@gmail.com>
  * @copyright Copyright &copy; Christoffer Niska 2011-
  * @license http://www.opensource.org/licenses/bsd-license.php New BSD License
- * @version 1.1.0
+ * @version 1.2.0
  */
 class ImageModule extends CWebModule
 {
@@ -25,10 +25,6 @@ class ImageModule extends CWebModule
 	 * @property boolean whether the installer is enabled.
 	 */
 	public $install=false;
-	/**
-	 * @property boolean whether the debug mode is enabled.
-	 */
-	public $debug=false;
 
 	/**
 	 * Initializes the module.
@@ -50,10 +46,10 @@ class ImageModule extends CWebModule
 				)
 			));
 
+			$this->registerScripts();
+
 			$this->defaultController='install';
 		}
-
-		$this->registerScripts();
 	}
 
 	/**
@@ -74,7 +70,7 @@ class ImageModule extends CWebModule
 		$assetsPath=Yii::getPathOfAlias('image.assets');
 
 		// Republish the assets if debug mode is enabled.
-		if($this->debug===true)
+		if(YII_DEBUG)
 			return Yii::app()->assetManager->publish($assetsPath,false,-1,true);
 		else
 			return Yii::app()->assetManager->publish($assetsPath);
@@ -86,6 +82,6 @@ class ImageModule extends CWebModule
 	 */
 	public function getVersion()
 	{
-		return '1.1.0';
+		return '1.2.0';
 	}
 }

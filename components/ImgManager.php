@@ -46,11 +46,11 @@ class ImgManager extends CApplicationComponent
 	/**
 	 * @property string the base path.
 	 */
-	private $_basePath;
+	protected $_basePath;
 	/**
 	 * @property string the image version path.
 	 */
-	private $_versionBasePath;
+	protected $_versionBasePath;
 
 	private static $_thumbOptions=array(); // needed for the static factory-method
 	private static $_imagePath;
@@ -70,7 +70,7 @@ class ImgManager extends CApplicationComponent
 	 * Returns the URL for a specific image.
 	 * @param string $id the image id.
 	 * @param string $version the name of the image version.
-	 * @param boolean $absolute whether to get an absolute URL.
+	 * @param boolean $absolute whether or not to get an absolute URL.
 	 * @return string the URL.
 	 * @throws CException if the version is not defined.
 	 */
@@ -79,7 +79,6 @@ class ImgManager extends CApplicationComponent
 		if(isset($this->versions[$version]))
 		{
 			$image = $this->loadModel($id);
-			$options=ImgOptions::create($this->versions[$version]);
 			$filename=$this->resolveFileName($image);
 			$path=$this->getVersionPath($version);
 			return Yii::app()->request->getBaseUrl($absolute).'/'.$path.$filename;
@@ -90,19 +89,21 @@ class ImgManager extends CApplicationComponent
 
 	/**
 	 * Saves a new image.
+	 * @param string $name the image name. Available since 1.2.0
 	 * @param CUploadedFile $file the uploaded image.
 	 * @return Image the image record.
 	 * @throws ImageException if saving the image record or file fails.
 	 */
-	public function save($file)
+	public function save($name,$file)
 	{
 		$trx=Yii::app()->db->beginTransaction();
 
 		try
 		{
 			$image=new Image();
-			$image->filename=$file->getName();
+			$image->name=$this->normalizeString($name);
 			$image->extension=strtolower($file->getExtensionName());
+			$image->filename=$file->getName();
 			$image->byteSize=$file->getSize();
 			$image->mimeType=$file->getType();
 			$image->created=new CDbExpression('NOW()');
@@ -134,17 +135,18 @@ class ImgManager extends CApplicationComponent
 	 */
 	public function delete($id)
 	{
+		/** @var Image $image */
 		$image = Image::model()->findByPk($id);
 
 		if($image instanceof Image)
 		{
-			$filename=$this->resolveFileName($image);
-			$filepath=$this->getImagePath(true).$filename;
+			$fileName=$this->resolveFileName($image);
+			$filePath=$this->getImagePath(true).$fileName;
 
 			if($image->delete()===false)
 				throw new ImgException(Img::t('error', 'Failed to delete image! Record could not be deleted.'));
 
-			if(file_exists($filepath)!==false && unlink($filepath)===false)
+			if(file_exists($filePath)!==false && unlink($filePath)===false)
 				throw new ImgException(Img::t('error', 'Failed to delete image! File could not be deleted.'));
 
 			foreach($this->versions as $version=>$config)
@@ -161,13 +163,12 @@ class ImgManager extends CApplicationComponent
 	 * @return boolean whether the image was deleted.
 	 * @throws ImgException if the image cannot be deleted.
 	 */
-	private function deleteVersion($image,$version)
+	protected function deleteVersion($image,$version)
 	{
 		if(isset($this->versions[$version]))
 		{
-			$filepath=$this->resolveImageVersionPath($image,$version);
-
-			if(file_exists($filepath)!==false && unlink($filepath)===false)
+			$filePath=$this->resolveImageVersionPath($image,$version);
+			if(file_exists($filePath)!==false && unlink($filePath)===false)
 				throw new ImgException(Img::t('error', 'Failed to delete the image version! File could not be deleted.'));
 		}
 		else
@@ -213,7 +214,7 @@ class ImgManager extends CApplicationComponent
 	{
 		if(isset($this->versions[$version]))
 		{
-			$image = $this->loadModel($id);
+			$image=$this->loadModel($id);
 
 			if($image!=null)
 			{
@@ -232,12 +233,27 @@ class ImgManager extends CApplicationComponent
 	}
 
 	/**
-	 * Returns the version specific path.
-	 * @param string $version the name of the image version.
-	 * @param boolean $absolute whether the path should be absolute.
+	 * Returns the images path.
+	 * @param boolean $absolute whether or not the path should be absolute.
 	 * @return string the path.
 	 */
-	private function getVersionPath($version,$absolute=false)
+	public function getImagePath($absolute=false)
+	{
+		$path='';
+
+		if($absolute===true)
+			$path.=$this->getBasePath();
+
+		return $path.$this->imagePath;
+	}
+
+	/**
+	 * Returns the version specific path.
+	 * @param string $version the name of the image version.
+	 * @param boolean $absolute whether or not the path should be absolute.
+	 * @return string the path.
+	 */
+	protected function getVersionPath($version,$absolute=false)
 	{
 		$path=$this->getVersionBasePath($absolute).$version.'/';
 
@@ -253,9 +269,17 @@ class ImgManager extends CApplicationComponent
 	 * @param Image $image the image model.
 	 * @return string the file name.
 	 */
-	private function resolveFileName($image)
+	protected function resolveFileName($image)
 	{
-		return $image instanceof Image ? $image->id.'.'.$image->extension : null;
+		if($image instanceof Image)
+		{
+			if(!empty($image->name))
+				return $image->name.'-'.$image->id.'.'.$image->extension; // since 1.2.0
+			else
+				return $image->id.'.'.$image->extension; // backwards compatibility
+		}
+		else
+			return null;
 	}
 
 	/**
@@ -264,45 +288,32 @@ class ImgManager extends CApplicationComponent
 	 * @param string $version the image version.
 	 * @return string the path.
 	 */
-	private function resolveImageVersionPath($image,$version)
+	protected function resolveImageVersionPath($image,$version)
 	{
-		$filename=$this->resolveFileName($image);
-		return $image instanceof Image ? $this->getVersionPath($version,true).$filename : null;
+		if($image instanceof Image)
+			return $this->getVersionPath($version,true).$this->resolveFileName($image);
+		else
+			return null;
 	}
 
 	/**
 	 * Returns the base path.
 	 * @return string the path.
 	 */
-	private function getBasePath()
+	protected function getBasePath()
 	{
 		if($this->_basePath!==null)
 			return $this->_basePath;
 		else
-			return $this->_basePath=realpath( Yii::app()->basePath.'/../' ).'/';
-	}
-
-	/**
-	 * Returns the images path.
-	 * @param boolean $absolute whether the path should be absolute.
-	 * @return string the path.
-	 */
-	public function getImagePath($absolute=false)
-	{
-		$path='';
-
-		if($absolute===true)
-			$path.=$this->getBasePath();
-
-		return $path.$this->imagePath;
+			return $this->_basePath=realpath(Yii::app()->basePath.'/../').'/';
 	}
 
 	/**
 	 * Returns the image version path.
-	 * @param boolean $absolute whether the path should be absolute.
+	 * @param boolean $absolute whether or not the path should be absolute.
 	 * @return string the path.
 	 */
-	private function getVersionBasePath($absolute=false)
+	protected function getVersionBasePath($absolute=false)
 	{
 		$path='';
 
@@ -318,11 +329,22 @@ class ImgManager extends CApplicationComponent
 	}
 
 	/**
+	 * Normalizes the given string by replacing special characters. å=>a, é=>e, ö=>o, etc.
+	 * @param string the string to normalize.
+	 * @return string the normalized string.
+	 * @since 1.2.0
+	 */
+	protected function normalizeString($string)
+	{
+        return preg_replace('~&([a-z]{1,2})(acute|cedil|circ|grave|lig|orn|ring|slash|th|tilde|uml);~i','$1',htmlentities($string,ENT_QUOTES,'UTF-8'));
+	}
+
+	/**
 	 * Creates a new image.
 	 * @param string $fileName the file name.
 	 * @return ImgThumb
 	 */
-	private static function thumbFactory($fileName)
+	protected static function thumbFactory($fileName)
 	{
 		$phpThumb=PhpThumbFactory::create(self::$_imagePath.$fileName,self::$_thumbOptions);
 		return new ImgThumb($phpThumb);

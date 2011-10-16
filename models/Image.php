@@ -12,8 +12,9 @@
  *
  * The followings are the available columns in table 'Image':
  * @property integer $id
- * @property string $filename
+ * @property string $name
  * @property string $extension
+ * @property string $filename
  * @property integer $byteSize
  * @property string $mimeType
  * @property string $created
@@ -23,6 +24,7 @@ class Image extends CActiveRecord
 {
 	/**
 	 * Returns the static model of the specified AR class.
+	 * @param string $className the class name.
 	 * @return Image the static model class
 	 */
 	public static function model($className=__CLASS__)
@@ -44,10 +46,10 @@ class Image extends CActiveRecord
 	public function rules()
 	{
 		return array(
-			array('filename, extension, byteSize, mimeType', 'required'),
-			array('byteSize', 'numerical', 'integerOnly'=>true),
-			array('filename, extension, mimeType, created', 'length', 'max'=>255),
-			array('id, filename, extension, byteSize, mimeType, created', 'safe', 'on'=>'search'),
+			array('name, extension, filename, byteSize, mimeType','required'),
+			array('byteSize','numerical','integerOnly'=>true),
+			array('name, extension, filename, mimeType, created','length','max'=>255),
+			array('id, name, extension, filename, byteSize, mimeType, created','safe','on'=>'search'),
 		);
 	}
 
@@ -59,8 +61,9 @@ class Image extends CActiveRecord
 	{
 		return array(
 			'id' => Img::t('core','Id'),
-			'filename' => Img::t('core','Filename'),
+			'name' => Img::t('core','Name'),
 			'extension' => Img::t('core','Extension'),
+			'filename' => Img::t('core','Filename'),
 			'byteSize' => Img::t('core','Byte Size'),
 			'mimeType' => Img::t('core','Mime Type'),
 			'created' => Img::t('core','Created'),
@@ -76,8 +79,9 @@ class Image extends CActiveRecord
 		$criteria=new CDbCriteria;
 
 		$criteria->compare('id',$this->id);
-		$criteria->compare('filename',$this->filename,true);
+		$criteria->compare('name',$this->name,true);
 		$criteria->compare('extension',$this->extension,true);
+		$criteria->compare('filename',$this->filename,true);
 		$criteria->compare('byteSize',$this->byteSize);
 		$criteria->compare('mimeType',$this->mimeType,true);
 		$criteria->compare('created',$this->created,true);
@@ -95,7 +99,7 @@ class Image extends CActiveRecord
 	 */
 	public function render($version,$alt='',$htmlOptions=array())
 	{
-		$src = Yii::app()->image->getURL($this->id, $version);
+		$src = Yii::app()->image->getURL($this->id,$version);
 		echo CHtml::image($src,$alt,$htmlOptions);
 	}
 }
