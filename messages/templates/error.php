@@ -23,6 +23,7 @@ return array (
   'Failed to create the access file! File could not be created.' => '',
   'Failed to create the access file! Template could not be read.' => '',
   'Failed to create version! Image could not be found.' => '',
+  'Failed to create version! Directory could not be created.' => '',
   'Failed to create version! Version is unknown.' => '',
   'Failed to crop image! Crop method is unknown.' => '',
   'Failed to delete image version! Version is unknown.' => '',
@@ -35,5 +36,6 @@ return array (
   'Failed to resize image! Resize method is unknown.' => '',
   'Failed to rotate image! Rotate method is unknown.' => '',
   'Failed to save image! File could not be saved.' => '',
+  'Failed to save image! Directory could not be created.' => '',
   'Failed to save image! Record could not be saved.' => '',
 );

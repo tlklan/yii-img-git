@@ -13,6 +13,7 @@
  * The followings are the available columns in table 'Image':
  * @property integer $id
  * @property string $name
+ * @property string $path
  * @property string $extension
  * @property string $filename
  * @property integer $byteSize
@@ -46,10 +47,10 @@ class Image extends CActiveRecord
 	public function rules()
 	{
 		return array(
-			array('name, extension, filename, byteSize, mimeType','required'),
+			array('name, path, extension, filename, byteSize, mimeType','required'),
 			array('byteSize','numerical','integerOnly'=>true),
-			array('name, extension, filename, mimeType, created','length','max'=>255),
-			array('id, name, extension, filename, byteSize, mimeType, created','safe','on'=>'search'),
+			array('name, path, extension, filename, mimeType, created','length','max'=>255),
+			array('id, name, path, extension, filename, byteSize, mimeType, created','safe','on'=>'search'),
 		);
 	}
 
@@ -62,6 +63,7 @@ class Image extends CActiveRecord
 		return array(
 			'id' => Img::t('core','Id'),
 			'name' => Img::t('core','Name'),
+			'path' => Img::t('core','Path'),
 			'extension' => Img::t('core','Extension'),
 			'filename' => Img::t('core','Filename'),
 			'byteSize' => Img::t('core','Byte Size'),
@@ -80,6 +82,7 @@ class Image extends CActiveRecord
 
 		$criteria->compare('id',$this->id);
 		$criteria->compare('name',$this->name,true);
+		$criteria->compare('path',$this->path,true);
 		$criteria->compare('extension',$this->extension,true);
 		$criteria->compare('filename',$this->filename,true);
 		$criteria->compare('byteSize',$this->byteSize);
@@ -101,5 +104,13 @@ class Image extends CActiveRecord
 	{
 		$src = Yii::app()->image->getURL($this->id,$version);
 		echo CHtml::image($src,$alt,$htmlOptions);
+	}
+
+	/**
+	 * @return string the path for this image.
+	 */
+	public function getPath()
+	{
+		return !empty($this->path) ? $this->path.'/' : '';
 	}
 }

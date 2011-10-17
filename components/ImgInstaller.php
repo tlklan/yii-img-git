@@ -100,7 +100,7 @@ class ImgInstaller extends CComponent
 		// Replace the placeholders in the template file.
 		$htaccess=strtr($htaccess,array(
 			'{baseUrl}'=>Yii::app()->getRequest()->getBaseUrl().'/',
-			'{sourceUrl}'=>'^versions/([^\<\>:"/\\\|\?\*]+)/[^\<\>:"/\\\|\?\*]+\-([0-9]+)\.(gif|jpg|png)$',
+			'{sourceUrl}'=>'^versions/([^/]+)/.*[^/]+\-([0-9]+)\.(gif|jpg|png)$',
 			'{targetUrl}'=>$targetUrl,
 		));
 

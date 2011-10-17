@@ -78,10 +78,9 @@ class ImgManager extends CApplicationComponent
 	{
 		if(isset($this->versions[$version]))
 		{
-			$image = $this->loadModel($id);
-			$filename=$this->resolveFileName($image);
-			$path=$this->getVersionPath($version);
-			return Yii::app()->request->getBaseUrl($absolute).'/'.$path.$filename;
+			$image=$this->loadModel($id);
+			$path=$this->getVersionPath($version).$image->getPath().$this->resolveFileName($image);
+			return Yii::app()->request->getBaseUrl($absolute).'/'.$path;
 		}
 		else
 			throw new ImgException(Img::t('error','Failed to get image URL! Version is unknown.'));
@@ -89,32 +88,43 @@ class ImgManager extends CApplicationComponent
 
 	/**
 	 * Saves a new image.
-	 * @param string $name the image name. Available since 1.2.0
 	 * @param CUploadedFile $file the uploaded image.
+	 * @param string $name the image name. Available since 1.2.0
+	 * @param string $path the path to save the file to. Available since 1.2.1.
 	 * @return Image the image record.
 	 * @throws ImageException if saving the image record or file fails.
 	 */
-	public function save($name,$file)
+	public function save($file,$name=null,$path=null)
 	{
 		$trx=Yii::app()->db->beginTransaction();
 
 		try
 		{
 			$image=new Image();
-			$image->name=$this->normalizeString($name);
 			$image->extension=strtolower($file->getExtensionName());
 			$image->filename=$file->getName();
 			$image->byteSize=$file->getSize();
 			$image->mimeType=$file->getType();
 			$image->created=new CDbExpression('NOW()');
 
+			if($name!==null)
+				$image->name=$this->normalizeString($name);
+
+			if($path!==null)
+				$image->path=trim($path,'/');
+
 			if($image->save()===false)
 				throw new ImgException(Img::t('error','Failed to save image! Record could not be saved.'));
 
-			$filename=$this->resolveFileName($image);
-			$path=$this->getImagePath(true);
+			$path=$this->resolveImagePath($image);
 
-			if($file->saveAs($path.$filename)===false)
+			if(!file_exists($path))
+				if(!$this->createDirectory($path))
+					throw new ImgException(Img::t('error','Failed to save image! Directory could not be created.'));
+
+			$path.=$this->resolveFileName($image);
+
+			if($file->saveAs($path)===false)
 				throw new ImgException(Img::t('error','Failed to save image! File could not be saved.'));
 
 			$trx->commit();
@@ -125,6 +135,41 @@ class ImgManager extends CApplicationComponent
 			$trx->rollback();
 			throw $e;
 		}
+	}
+
+	/**
+	 * Creates a new version of a specific image.
+	 * @param integer $id the image id.
+	 * @param string $version the image version.
+	 * @return ThumbBase
+	 */
+	public function createVersion($id,$version)
+	{
+		if(isset($this->versions[$version]))
+		{
+			$image=$this->loadModel($id);
+
+			if($image!=null)
+			{
+				$fileName=$this->resolveFileName($image);
+				$thumb=self::thumbFactory($this->resolveImagePath($image).$fileName);
+				$options=ImgOptions::create($this->versions[$version]);
+				$thumb->applyOptions($options);
+				$path=$this->resolveImageVersionPath($image,$version);
+
+				if(!file_exists($path))
+					if(!$this->createDirectory($path))
+						throw new ImgException(Img::t('error','Failed to create version! Directory could not be created.'));
+
+				$path.=$fileName;
+
+				return $thumb->save($path);
+			}
+			else
+				throw new ImgException(Img::t('error','Failed to create version! Image could not be found.'));
+		}
+		else
+			throw new ImgException(Img::t('error','Failed to create version! Version is unknown.'));
 	}
 
 	/**
@@ -140,17 +185,16 @@ class ImgManager extends CApplicationComponent
 
 		if($image instanceof Image)
 		{
-			$fileName=$this->resolveFileName($image);
-			$filePath=$this->getImagePath(true).$fileName;
+			$path=$this->resolveImagePath($image).$this->resolveFileName($image);
 
 			if($image->delete()===false)
 				throw new ImgException(Img::t('error', 'Failed to delete image! Record could not be deleted.'));
 
-			if(file_exists($filePath)!==false && unlink($filePath)===false)
+			if(file_exists($path)!==false && unlink($path)===false)
 				throw new ImgException(Img::t('error', 'Failed to delete image! File could not be deleted.'));
 
 			foreach($this->versions as $version=>$config)
-				$this->deleteVersion($image, $version);
+				$this->deleteVersion($image,$version);
 		}
 		else
 			throw new ImgException(Img::t('error', 'Failed to delete image! Record could not be found.'));
@@ -167,8 +211,9 @@ class ImgManager extends CApplicationComponent
 	{
 		if(isset($this->versions[$version]))
 		{
-			$filePath=$this->resolveImageVersionPath($image,$version);
-			if(file_exists($filePath)!==false && unlink($filePath)===false)
+			$path=$this->resolveImageVersionPath($image,$version).$this->resolveFileName($image);
+			
+			if(file_exists($path)!==false && unlink($path)===false)
 				throw new ImgException(Img::t('error', 'Failed to delete the image version! File could not be deleted.'));
 		}
 		else
@@ -187,7 +232,7 @@ class ImgManager extends CApplicationComponent
 		if($image!==null)
 		{
 			$fileName=$this->resolveFileName($image);
-			$thumb=self::thumbFactory($fileName);
+			$thumb=self::thumbFactory($this->resolveImagePath($image).$fileName);
 			return $thumb;
 		}
 		else
@@ -205,31 +250,37 @@ class ImgManager extends CApplicationComponent
 	}
 
 	/**
-	 * Creates a new version of a specific image.
-	 * @param integer $id the image id.
-	 * @param string $version the image version.
-	 * @return ThumbBase
+	 * Returns the original image file name.
+	 * @param Image $image the image model.
+	 * @return string the file name.
 	 */
-	public function createVersion($id,$version)
+	protected function resolveFileName($image)
 	{
-		if(isset($this->versions[$version]))
-		{
-			$image=$this->loadModel($id);
-
-			if($image!=null)
-			{
-				$fileName=$this->resolveFileName($image);
-				$thumb=self::thumbFactory($fileName);
-				$options=ImgOptions::create($this->versions[$version]);
-				$thumb->applyOptions($options);
-				$path=$this->getVersionPath($version,true);
-				return $thumb->save($path.$fileName);
-			}
-			else
-				throw new ImgException(Img::t('error','Failed to create version! Image could not be found.'));
-		}
+		if(!empty($image->name))
+			return $image->name.'-'.$image->id.'.'.$image->extension; // 1.2.0 ->
 		else
-			throw new ImgException(Img::t('error','Failed to create version! Version is unknown.'));
+			return $image->id.'.'.$image->extension; // backwards compatibility
+	}
+
+	/**
+	 * Returns the path to a specific image.
+	 * @param Image $image the image model.
+	 * @return string the path.
+	 */
+	protected function resolveImagePath($image)
+	{
+		return $this->getImagePath(true).$image->getPath();
+	}
+
+	/**
+	 * Returns the path to a specific image version.
+	 * @param Image $image the image model.
+	 * @param string $version the image version.
+	 * @return string the path.
+	 */
+	protected function resolveImageVersionPath($image,$version)
+	{
+		return $this->getVersionPath($version,true).$image->getPath();
 	}
 
 	/**
@@ -237,7 +288,7 @@ class ImgManager extends CApplicationComponent
 	 * @param boolean $absolute whether or not the path should be absolute.
 	 * @return string the path.
 	 */
-	public function getImagePath($absolute=false)
+	protected function getImagePath($absolute=false)
 	{
 		$path='';
 
@@ -265,50 +316,6 @@ class ImgManager extends CApplicationComponent
 	}
 
 	/**
-	 * Returns the original image file name.
-	 * @param Image $image the image model.
-	 * @return string the file name.
-	 */
-	protected function resolveFileName($image)
-	{
-		if($image instanceof Image)
-		{
-			if(!empty($image->name))
-				return $image->name.'-'.$image->id.'.'.$image->extension; // since 1.2.0
-			else
-				return $image->id.'.'.$image->extension; // backwards compatibility
-		}
-		else
-			return null;
-	}
-
-	/**
-	 * Returns the path to a specific image version.
-	 * @param Image $image the image model.
-	 * @param string $version the image version.
-	 * @return string the path.
-	 */
-	protected function resolveImageVersionPath($image,$version)
-	{
-		if($image instanceof Image)
-			return $this->getVersionPath($version,true).$this->resolveFileName($image);
-		else
-			return null;
-	}
-
-	/**
-	 * Returns the base path.
-	 * @return string the path.
-	 */
-	protected function getBasePath()
-	{
-		if($this->_basePath!==null)
-			return $this->_basePath;
-		else
-			return $this->_basePath=realpath(Yii::app()->basePath.'/../').'/';
-	}
-
-	/**
 	 * Returns the image version path.
 	 * @param boolean $absolute whether or not the path should be absolute.
 	 * @return string the path.
@@ -329,24 +336,49 @@ class ImgManager extends CApplicationComponent
 	}
 
 	/**
+	 * Returns the base path.
+	 * @return string the path.
+	 */
+	protected function getBasePath()
+	{
+		if($this->_basePath!==null)
+			return $this->_basePath;
+		else
+			return $this->_basePath=realpath(Yii::app()->basePath.'/../').'/';
+	}
+
+	/**
+	 * Creates the specified directory.
+	 * @param string $path the directory path.
+	 * @param integer $mode the file mode.
+	 * @param boolean $recursive allows the creation of nested directories.
+	 * @return boolean whether or not the directory was created.
+	 * @since 1.2.1
+	 */
+	protected function createDirectory($path,$mode=0777,$recursive=true)
+	{
+		return mkdir($path,$mode,$recursive);
+	}
+
+	/**
 	 * Normalizes the given string by replacing special characters. å=>a, é=>e, ö=>o, etc.
-	 * @param string the string to normalize.
+	 * @param string $text the text to normalize.
 	 * @return string the normalized string.
 	 * @since 1.2.0
 	 */
-	protected function normalizeString($string)
+	protected function normalizeString($text)
 	{
-        return preg_replace('~&([a-z]{1,2})(acute|cedil|circ|grave|lig|orn|ring|slash|th|tilde|uml);~i','$1',htmlentities($string,ENT_QUOTES,'UTF-8'));
+        return preg_replace('~&([a-z]{1,2})(acute|cedil|circ|grave|lig|orn|ring|slash|th|tilde|uml);~i','$1',htmlentities($text,ENT_QUOTES,'UTF-8'));
 	}
 
 	/**
 	 * Creates a new image.
-	 * @param string $fileName the file name.
+	 * @param string $filePath the image file path.
 	 * @return ImgThumb
 	 */
-	protected static function thumbFactory($fileName)
+	protected static function thumbFactory($filePath)
 	{
-		$phpThumb=PhpThumbFactory::create(self::$_imagePath.$fileName,self::$_thumbOptions);
+		$phpThumb=PhpThumbFactory::create($filePath,self::$_thumbOptions);
 		return new ImgThumb($phpThumb);
 	}
 }

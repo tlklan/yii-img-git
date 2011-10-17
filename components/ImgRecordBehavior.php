@@ -17,11 +17,12 @@ class ImgRecordBehavior extends CBehavior
 	/**
 	 * Saves the image for the owner of this behavior.
 	 * @param string $name the image name.
+	 * @param string $path the path for saving the image.
 	 * @param CUploadedFile $file the uploaded file.
 	 */
-	public function saveImage($name,$file)
+	public function saveImage($file,$name=null,$path=null)
 	{
-		$image=Yii::app()->image->save($name,$file);
+		$image=Yii::app()->image->save($file,$name,$path);
 
 		if($image!==null && $this->owner->hasAttribute($this->attribute))
 			$this->owner->{$this->attribute}=$image->id;
