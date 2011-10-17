@@ -31,7 +31,7 @@ class ImgInstaller extends CComponent
 	public function init()
 	{
 		$this->_imagePath=Yii::app()->image->imagePath;
-		$this->_basePath=realpath( Yii::app()->basePath.'/../' ).'/';
+		$this->_basePath=realpath(Yii::app()->basePath.'/../').'/';
 	}
 
 	/**
@@ -100,7 +100,7 @@ class ImgInstaller extends CComponent
 		// Replace the placeholders in the template file.
 		$htaccess=strtr($htaccess,array(
 			'{baseUrl}'=>Yii::app()->getRequest()->getBaseUrl().'/',
-			'{sourceUrl}'=>'^versions/([\w\d]+)/[\w\d]+\-([\d]+)\.(gif|jpg|png)$',
+			'{sourceUrl}'=>'^versions/([^\<\>:"/\\\|\?\*]+)/[^\<\>:"/\\\|\?\*]+\-([0-9]+)\.(gif|jpg|png)$',
 			'{targetUrl}'=>$targetUrl,
 		));
 
