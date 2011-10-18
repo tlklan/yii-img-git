@@ -47,7 +47,7 @@ class Image extends CActiveRecord
 	public function rules()
 	{
 		return array(
-			array('name, path, extension, filename, byteSize, mimeType','required'),
+			array('extension, filename, byteSize, mimeType','required'),
 			array('byteSize','numerical','integerOnly'=>true),
 			array('name, path, extension, filename, mimeType, created','length','max'=>255),
 			array('id, name, path, extension, filename, byteSize, mimeType, created','safe','on'=>'search'),
