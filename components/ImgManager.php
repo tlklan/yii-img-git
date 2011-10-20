@@ -362,13 +362,15 @@ class ImgManager extends CApplicationComponent
 
 	/**
 	 * Normalizes the given string by replacing special characters. å=>a, é=>e, ö=>o, etc.
-	 * @param string $text the text to normalize.
+	 * @param string $string the text to normalize.
 	 * @return string the normalized string.
 	 * @since 1.2.0
 	 */
-	protected function normalizeString($text)
+	protected function normalizeString($string)
 	{
-        return preg_replace('~&([a-z]{1,2})(acute|cedil|circ|grave|lig|orn|ring|slash|th|tilde|uml);~i','$1',htmlentities($text,ENT_QUOTES,'UTF-8'));
+		$string=str_replace(str_split('/\?%*:|"<>. '),'',$string);
+		$string=preg_replace('~&([a-z]{1,2})(acute|cedil|circ|grave|lig|orn|ring|slash|th|tilde|uml);~i','$1',htmlentities($string,ENT_QUOTES,'UTF-8'));
+		return $string;
 	}
 
 	/**
