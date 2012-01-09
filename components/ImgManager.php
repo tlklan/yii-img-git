@@ -1,4 +1,4 @@
-<?php
+ï»¿<?php
 /**
  * Image manager class file.
  * @author Christoffer Niska <ChristofferNiska@gmail.com>
@@ -12,7 +12,7 @@
  * @see http://phpthumb.gxdlabs.com/
  */
 
-require_once(dirname(__FILE__).'/../vendors/phpthumb/ThumbLib.inc.php'); // Yii::import() will not work in this case.
+require_once(dirname(__FILE__) . '/../vendors/phpthumb/ThumbLib.inc.php'); // Yii::import() will not work in this case.
 
 class ImgManager extends CApplicationComponent
 {
@@ -32,23 +32,31 @@ class ImgManager extends CApplicationComponent
 	 * );
 	 * </code>
 	 *
-	 * @property array
+	 * @var array
 	 */
 	public $thumbOptions=array();
 	/**
-	 * @property string the relative path where to store images.
+	 * @var string the base url.
+	 */
+	public $baseUrl;
+	/**
+	 * @var string the relative path where to store images.
 	 */
 	public $imagePath='files/images/';
 	/**
-	 * @property array the image versions.
+	 * @var array the image versions.
 	 */
 	public $versions=array();
 	/**
-	 * @property string the base path.
+	 * @var string the base path.
 	 */
 	protected $_basePath;
 	/**
-	 * @property string the image version path.
+	 * @var string the path to the original images.
+	 */
+	protected $_originalBasePath;
+	/**
+	 * @var string the path to the versioned images.
 	 */
 	protected $_versionBasePath;
 
@@ -62,6 +70,9 @@ class ImgManager extends CApplicationComponent
 	{
 		self::$_thumbOptions=$this->thumbOptions;
 		self::$_imagePath=$this->getImagePath(true);
+
+		if ($this->baseUrl === null)
+			$this->baseUrl = Yii::app()->request->baseUrl;
 
 		parent::init();
 	}
@@ -80,7 +91,7 @@ class ImgManager extends CApplicationComponent
 		{
 			$image=$this->loadModel($id);
 			$path=$this->getVersionPath($version).$image->getPath().$this->resolveFileName($image);
-			return Yii::app()->request->getBaseUrl($absolute).'/'.$path;
+			return '/'.$this->baseUrl.'/'.$path;
 		}
 		else
 			throw new ImgException(Img::t('error','Failed to get image URL! Version is unknown.'));
@@ -185,6 +196,8 @@ class ImgManager extends CApplicationComponent
 
 		if($image instanceof Image)
 		{
+			$deleted = true;
+
 			$path=$this->resolveImagePath($image).$this->resolveFileName($image);
 
 			if($image->delete()===false)
@@ -194,7 +207,9 @@ class ImgManager extends CApplicationComponent
 				throw new ImgException(Img::t('error', 'Failed to delete image! File could not be deleted.'));
 
 			foreach($this->versions as $version=>$config)
-				$this->deleteVersion($image,$version);
+				$deleted = $this->deleteVersion($image,$version);
+
+			return $deleted;
 		}
 		else
 			throw new ImgException(Img::t('error', 'Failed to delete image! Record could not be found.'));
@@ -215,6 +230,8 @@ class ImgManager extends CApplicationComponent
 			
 			if(file_exists($path)!==false && unlink($path)===false)
 				throw new ImgException(Img::t('error', 'Failed to delete the image version! File could not be deleted.'));
+
+			return true;
 		}
 		else
 			throw new ImgException(Img::t('error', 'Failed to delete image version! Version is unknown.'));
@@ -269,7 +286,7 @@ class ImgManager extends CApplicationComponent
 	 */
 	protected function resolveImagePath($image)
 	{
-		return $this->getImagePath(true).$image->getPath();
+		return $this->getOriginalPath(true).$image->getPath();
 	}
 
 	/**
@@ -309,14 +326,34 @@ class ImgManager extends CApplicationComponent
 		$path=$this->getVersionBasePath($absolute).$version.'/';
 
 		// Might be a new version so we need to create the path if it doesn't exist.
-		if(!file_exists($path))
-			mkdir($path);
+		if($absolute && !file_exists($path))
+			$this->createDirectory($path);
 
 		return $path;
 	}
 
 	/**
-	 * Returns the image version path.
+	 * Returns the path to the original images.
+	 * @param boolean $absolute whether or not the path should be absolute.
+	 * @return string the path.
+	 */
+	protected function getOriginalPath($absolute=false)
+	{
+		$path='';
+
+		if($absolute===true)
+			$path.=$this->getBasePath();
+
+		if($this->_originalBasePath!==null)
+			$path.=$this->_originalBasePath;
+		else
+			$path.=$this->_originalBasePath = $this->getImagePath().'original/';
+
+		return $path;
+	}
+
+	/**
+	 * Returns the path to the versioned images.
 	 * @param boolean $absolute whether or not the path should be absolute.
 	 * @return string the path.
 	 */
@@ -361,15 +398,16 @@ class ImgManager extends CApplicationComponent
 	}
 
 	/**
-	 * Normalizes the given string by replacing special characters. å=>a, é=>e, ö=>o, etc.
+	 * Normalizes the given string by replacing special characters. ï¿½=>a, ï¿½=>e, ï¿½=>o, etc.
 	 * @param string $string the text to normalize.
 	 * @return string the normalized string.
 	 * @since 1.2.0
 	 */
 	protected function normalizeString($string)
 	{
-		$string=str_replace(str_split('/\?%*:|"<>. '),'',$string);
-		$string=preg_replace('~&([a-z]{1,2})(acute|cedil|circ|grave|lig|orn|ring|slash|th|tilde|uml);~i','$1',htmlentities($string,ENT_QUOTES,'UTF-8'));
+		$string=str_replace(str_split('-/\?%*:|"<>. '),'',$string);
+		$string=preg_replace('/&([a-z]{1,2})(acute|cedil|circ|grave|lig|orn|ring|slash|th|tilde|uml);/i','$1',htmlentities($string,ENT_QUOTES,'UTF-8'));
+		$string=preg_replace('/&.+;/','',$string);
 		return $string;
 	}
 

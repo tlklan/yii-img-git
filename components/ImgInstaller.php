@@ -9,15 +9,15 @@
 class ImgInstaller extends CComponent
 {
 	/**
-	 * @property ImgModule the image module.
+	 * @var ImgModule the image module.
 	 */
 	private $_module;
 	/**
-	 * @property string the image path.
+	 * @var string the image path.
 	 */
 	private $_imagePath;
 	/**
-	 * @property string the base path.
+	 * @var string the base path.
 	 */
 	private $_basePath;
 	/**
@@ -100,7 +100,7 @@ class ImgInstaller extends CComponent
 		// Replace the placeholders in the template file.
 		$htaccess=strtr($htaccess,array(
 			'{baseUrl}'=>Yii::app()->getRequest()->getBaseUrl().'/',
-			'{sourceUrl}'=>'^versions/([^/]+)/.*\-*(\d+)\.(gif|jpg|png)$',
+			'{sourceUrl}'=>'^versions/([^/]+)/[^\-]*\-?(\d+)\.(gif|jpg|png)$',
 			'{targetUrl}'=>$targetUrl,
 		));
 

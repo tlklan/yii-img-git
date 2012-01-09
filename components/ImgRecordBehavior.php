@@ -9,7 +9,7 @@
 class ImgRecordBehavior extends CBehavior
 {
 	/**
-	 * @property string the image id attribute. Defaults to "imageId".
+	 * @var string the image id attribute. Defaults to "imageId".
 	 * @since 1.2.0
 	 */
 	public $attribute='imageId';
@@ -29,6 +29,18 @@ class ImgRecordBehavior extends CBehavior
 	}
 
 	/**
+	 * Deletes the image for the owner of this behavior.
+	 * @return boolean whether the image was deleted.
+	 */
+	public function deleteImage()
+	{
+		if ($this->owner->hasAttribute($this->attribute))
+			return Yii::app()->image->delete($this->owner->{$this->attribute});
+		else
+			return false;
+	}
+
+	/**
 	 * Renders the image for the owner of this behavior.
 	 * @param string $version the name of the image version.
 	 * @param string $alt the image alternative text.
@@ -40,7 +52,7 @@ class ImgRecordBehavior extends CBehavior
 		{
 			$image=Yii::app()->image->loadModel($this->owner->{$this->attribute});
 
-			if ($image!==null)
+			if($image!==null)
 				$image->render($version,$alt,$htmlOptions);
 		}
 	}

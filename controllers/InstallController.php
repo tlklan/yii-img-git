@@ -6,7 +6,7 @@
  * @license http://www.opensource.org/licenses/bsd-license.php New BSD License
  * @since 0.5
  */
-class InstallController extends Controller
+class InstallController extends CController
 {
 	/**
 	 * Creates and renders a new version of a specific image.
