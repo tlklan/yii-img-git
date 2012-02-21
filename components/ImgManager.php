@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Image manager class file.
  * @author Christoffer Niska <ChristofferNiska@gmail.com>
@@ -43,6 +43,14 @@ class ImgManager extends CApplicationComponent
 	 * @var string the relative path where to store images.
 	 */
 	public $imagePath='files/images/';
+	/**
+	 * @var string the name of the original directory.
+	 */
+	public $originalDir='original';
+	/**
+	 * @var string the name of the version directory.
+	 */
+	public $versionDir='versions';
 	/**
 	 * @var array the image versions.
 	 */
@@ -129,9 +137,8 @@ class ImgManager extends CApplicationComponent
 
 			$path=$this->resolveImagePath($image);
 
-			if(!file_exists($path))
-				if(!$this->createDirectory($path))
-					throw new ImgException(Img::t('error','Failed to save image! Directory could not be created.'));
+			if(!file_exists($path) && !$this->createDirectory($path))
+				throw new ImgException(Img::t('error','Failed to save image! Directory could not be created.'));
 
 			$path.=$this->resolveFileName($image);
 
@@ -168,9 +175,8 @@ class ImgManager extends CApplicationComponent
 				$thumb->applyOptions($options);
 				$path=$this->resolveImageVersionPath($image,$version);
 
-				if(!file_exists($path))
-					if(!$this->createDirectory($path))
-						throw new ImgException(Img::t('error','Failed to create version! Directory could not be created.'));
+				if(!file_exists($path) && !$this->createDirectory($path))
+					throw new ImgException(Img::t('error','Failed to create version! Directory could not be created.'));
 
 				$path.=$fileName;
 
@@ -347,7 +353,7 @@ class ImgManager extends CApplicationComponent
 		if($this->_originalBasePath!==null)
 			$path.=$this->_originalBasePath;
 		else
-			$path.=$this->_originalBasePath = $this->getImagePath().'original/';
+			$path.=$this->_originalBasePath = $this->getImagePath().$this->originalDir.'/';
 
 		return $path;
 	}
@@ -367,7 +373,7 @@ class ImgManager extends CApplicationComponent
 		if($this->_versionBasePath!==null)
 			$path.=$this->_versionBasePath;
 		else
-			$path.=$this->_versionBasePath = $this->getImagePath().'versions/';
+			$path.=$this->_versionBasePath = $this->getImagePath().$this->versionDir.'/';
 
 		return $path;
 	}

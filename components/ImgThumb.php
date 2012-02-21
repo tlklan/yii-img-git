@@ -13,8 +13,12 @@
  */
 class ImgThumb extends CComponent
 {
+	const TYPE_GIF = 'GIF';
+	const TYPE_JPG = 'JPG';
+	const TYPE_PNG = 'PNG';
+
 	/**
-	 * @property ThumbBase the PhpThumb object.
+	 * @var ThumbBase the PhpThumb object.
 	 */
 	private $_thumb;
 

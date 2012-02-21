@@ -22,7 +22,7 @@ class DefaultController extends CController
 	 * @param string $version the name of the image version.
 	 * @throws CHttpException if the requested version is not defined.
 	 */
-	public function actionCreate($id,$version)
+	public function actionCreate($id, $version)
 	{
 		$versions=Yii::app()->image->versions;
 		if(isset($versions[$version]))
@@ -32,5 +32,15 @@ class DefaultController extends CController
 		}
 		else
 			throw new CHttpException(404,Img::t('error','Failed to create image! Version is unknown.'));
+	}
+
+	/**
+	 * Creates and renders a new version of a specific image.
+	 * @param string $filename the image file name.
+	 */
+	public function actionCreateFromFilename($filename)
+	{
+		$thumb = Yii::app()->image->createVersionFromFilename($filename);
+		$thumb->render();
 	}
 }

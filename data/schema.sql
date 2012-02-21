@@ -1,8 +1,9 @@
-DROP TABLE IF EXISTS `Image`;
+DROP TABLE IF EXISTS `image`;
 
-CREATE TABLE `Image` (
+CREATE TABLE `image` (
 	`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
 	`name` varchar(255) NOT NULL,
+	`path` varchar(255) NOT NULL,
 	`extension` varchar(255) NOT NULL,
 	`filename` varchar(255) NOT NULL,
 	`byteSize` int(10) unsigned NOT NULL,
