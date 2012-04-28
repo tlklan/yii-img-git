@@ -91,15 +91,15 @@ class ImgManager extends CApplicationComponent
 	 * @param string $version the name of the image version.
 	 * @param boolean $absolute whether or not to get an absolute URL.
 	 * @return string the URL.
-	 * @throws CException if the version is not defined.
+	 * @throws ImgException if the version is not defined.
 	 */
 	public function getURL($id,$version,$absolute=false)
 	{
 		if(isset($this->versions[$version]))
 		{
 			$image=$this->loadModel($id);
-			$path=$this->getVersionPath($version).$image->getPath().$this->resolveFileName($image);
-			return '/'.$this->baseUrl.'/'.$path;
+			$path=$this->getVersionPath($version,$absolute).$image->getPath().$this->resolveFileName($image);
+			return $this->baseUrl.'/'.$path;
 		}
 		else
 			throw new ImgException(Img::t('error','Failed to get image URL! Version is unknown.'));
@@ -111,7 +111,8 @@ class ImgManager extends CApplicationComponent
 	 * @param string $name the image name. Available since 1.2.0
 	 * @param string $path the path to save the file to. Available since 1.2.1.
 	 * @return Image the image record.
-	 * @throws ImageException if saving the image record or file fails.
+	 * @throws ImgException if saving the file or creating the directory fails.
+	 * @throws CException if a query fails.
 	 */
 	public function save($file,$name=null,$path=null)
 	{
@@ -160,6 +161,7 @@ class ImgManager extends CApplicationComponent
 	 * @param integer $id the image id.
 	 * @param string $version the image version.
 	 * @return ThumbBase
+	 * @throws ImgException if creating the image version fails.
 	 */
 	public function createVersion($id,$version)
 	{
@@ -191,7 +193,7 @@ class ImgManager extends CApplicationComponent
 
 	/**
 	 * Deletes a specific image.
-	 * @param $id the image id.
+	 * @param integer $id the image id.
 	 * @return boolean whether the image was deleted.
 	 * @throws ImgException if the image cannot be deleted.
 	 */
