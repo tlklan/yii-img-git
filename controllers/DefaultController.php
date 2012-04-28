@@ -33,14 +33,4 @@ class DefaultController extends CController
 		else
 			throw new CHttpException(404,Img::t('error','Failed to create image! Version is unknown.'));
 	}
-
-	/**
-	 * Creates and renders a new version of a specific image.
-	 * @param string $filename the image file name.
-	 */
-	public function actionCreateFromFilename($filename)
-	{
-		$thumb = Yii::app()->image->createVersionFromFilename($filename);
-		$thumb->render();
-	}
 }
