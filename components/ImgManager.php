@@ -46,7 +46,7 @@ class ImgManager extends CApplicationComponent
 	/**
 	 * @var string the name of the original directory.
 	 */
-	public $originalDir='original';
+	public $originalDir='originals';
 	/**
 	 * @var string the name of the version directory.
 	 */

@@ -113,4 +113,12 @@ class Image extends CActiveRecord
 	{
 		return !empty($this->path) ? $this->path.'/' : '';
 	}
+
+	/**
+	 * @return string the image file name.
+	 */
+	public function resolveFilename()
+	{
+		return (!empty($this->name) ? $this->name : $this->id).'.'.$this->extension;
+	}
 }
