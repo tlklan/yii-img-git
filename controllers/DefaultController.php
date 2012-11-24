@@ -6,7 +6,7 @@
  * @license http://www.opensource.org/licenses/bsd-license.php New BSD License
  * @since 0.5
  */
-class DefaultController extends CController
+class DefaultController extends Controller
 {
 	/**
 	 * Default auction, redirects to the home URL.
